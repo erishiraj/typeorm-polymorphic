@@ -4,7 +4,6 @@ import {
   getMetadataArgsStorage,
   DeepPartial,
   SaveOptions,
-  FindConditions,
   FindManyOptions,
   FindOneOptions,
   ObjectID,
@@ -166,7 +165,7 @@ export abstract class AbstractPolymorphicRepository<E> extends Repository<E> {
       options.type === 'parent'
         ? {
             where: {
-              id: parent[entityIdColumn(options)],
+              [PrimaryColumn(options)]: parent[entityIdColumn(options)],
             },
           }
         : {
@@ -307,11 +306,9 @@ export abstract class AbstractPolymorphicRepository<E> extends Repository<E> {
 
   find(options?: FindManyOptions<E>): Promise<E[]>;
 
-  find(conditions?: FindConditions<E>): Promise<E[]>;
+  find(conditions?: FindManyOptions<E>): Promise<E[]>;
 
-  public async find(
-    optionsOrConditions?: FindConditions<E> | FindManyOptions<E>,
-  ): Promise<E[]> {
+  public async find(optionsOrConditions?: FindManyOptions<E>): Promise<E[]> {
     const results = await super.find(optionsOrConditions);
 
     if (!this.isPolymorph()) {
@@ -332,20 +329,14 @@ export abstract class AbstractPolymorphicRepository<E> extends Repository<E> {
 
   findOne(options?: FindOneOptions<E>): Promise<E | undefined>;
 
-  findOne(
-    conditions?: FindConditions<E>,
-    options?: FindOneOptions<E>,
-  ): Promise<E | undefined>;
-
   public async findOne(
     idOrOptionsOrConditions?:
       | string
       | number
       | Date
       | ObjectID
-      | FindConditions<E>
       | FindOneOptions<E>,
-    optionsOrConditions?: FindConditions<E> | FindOneOptions<E>,
+    optionsOrConditions?: FindOneOptions<E>,
   ): Promise<E | undefined> {
     const polymorphicMetadata = this.getPolymorphicMetadata();
 
@@ -355,13 +346,8 @@ export abstract class AbstractPolymorphicRepository<E> extends Repository<E> {
           typeof idOrOptionsOrConditions === 'number' ||
           typeof idOrOptionsOrConditions === 'object') &&
         optionsOrConditions
-        ? super.findOne(
-            idOrOptionsOrConditions as number | string | ObjectID | Date,
-            optionsOrConditions as FindConditions<E> | FindOneOptions<E>,
-          )
-        : super.findOne(
-            idOrOptionsOrConditions as FindConditions<E> | FindOneOptions<E>,
-          );
+        ? super.findOne(optionsOrConditions as FindOneOptions<E>)
+        : super.findOne(idOrOptionsOrConditions as FindOneOptions<E>);
     }
 
     const entity =
@@ -370,13 +356,8 @@ export abstract class AbstractPolymorphicRepository<E> extends Repository<E> {
         typeof idOrOptionsOrConditions === 'number' ||
         typeof idOrOptionsOrConditions === 'object') &&
       optionsOrConditions
-        ? await super.findOne(
-            idOrOptionsOrConditions as number | string | ObjectID | Date,
-            optionsOrConditions as FindConditions<E> | FindOneOptions<E>,
-          )
-        : await super.findOne(
-            idOrOptionsOrConditions as FindConditions<E> | FindOneOptions<E>,
-          );
+        ? await super.findOne(optionsOrConditions as FindOneOptions<E>)
+        : await super.findOne(idOrOptionsOrConditions as FindOneOptions<E>);
 
     if (!entity) {
       return entity;
